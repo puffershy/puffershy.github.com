@@ -3,11 +3,11 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: Puffer
+title: Buyi's blog
 subtitle:
 description:
 keywords:
-author: 余长辉
+author: buyi
 language: zh-CN
 timezone:
 
@@ -78,4 +78,6 @@ theme: maupassant
 # Deployment
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
-  type:
+  type: git
+  repo: git@github.com:yuchanghui/yuchanghui.github.com.git
+  branch: master
