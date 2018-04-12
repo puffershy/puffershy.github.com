@@ -178,10 +178,10 @@ Service Consumer和Service Provider一样，也有一个如何知道Eureka Serve
 
 
 # 参数配置 #
-参数名|说明
----|---
-xxxx|应用没有renew（服务续约）的情况服务失效时间，单位秒，客户端配置
-eureka.server.responseCacheAutoExpirationInSeconds|设置时间对象没有被写访问则对象从内存中删除的时间，默认180s，底层构建缓存的时候用到com.netflix.eureka.registry.ResponseCacheImpl.ResponseCacheImpl
+|参数名|说明|
+|:-------------------:|:------------------:|
+|xxxx|应用没有renew（服务续约）的情况服务失效时间，单位秒，客户端配置|
+|eureka.server.responseCacheAutoExpirationInSeconds|设置时间对象没有被写访问则对象从内存中删除的时间，默认180s，底层构建缓存的时候用到com.netflix.eureka.registry.ResponseCacheImpl.ResponseCacheImpl|
 
 
 
