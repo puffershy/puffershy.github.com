@@ -3,12 +3,21 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
+<<<<<<< HEAD
 title: Hexo
 subtitle:
 description:
 keywords:
 author: John Doe
 language:
+=======
+title: Puffer
+subtitle:
+description:
+keywords:
+author: 余长辉
+language: zh-CN
+>>>>>>> bf235b58d61d0c3d3a43f5ed4262b1b92af9a6c3
 timezone:
 
 # URL
@@ -73,11 +82,19 @@ pagination_dir: page
 # Extensions
 ## Plugins: https://hexo.io/plugins/
 ## Themes: https://hexo.io/themes/
+<<<<<<< HEAD
 theme: maupassant-hexo
+=======
+theme: maupassant
+>>>>>>> bf235b58d61d0c3d3a43f5ed4262b1b92af9a6c3
 
 # Deployment
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
+<<<<<<< HEAD
   type: git
   repository: git@github.com:yuchanghui/yuchanghui.github.com.git
   branch: master
+=======
+  type:
+>>>>>>> bf235b58d61d0c3d3a43f5ed4262b1b92af9a6c3
