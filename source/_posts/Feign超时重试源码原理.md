@@ -141,7 +141,16 @@ Retryer重试逻辑如下
       return interval > maxPeriod ? maxPeriod : interval;
     }
 ```
-
+Feign重试在早期的spring Cloud中使用`feign.Retryer.Default#Default()`,重试5次。但feign整合了ribbon，ribbon也有重试能力，此时，就可能会导致行为的混乱。
+spring Cloud意识到此问题，因此做了改进，将feign的重试改为`feign.Retryer#NEVER_RETRY`，如果使用Feign的重试，只需要Ribbon的重试配置即可。因此Camden以及以后的版本，Feign的重试可使用如下属性配置：
+```
+ribbon:
+ MaxAutoRetries: 1
+ MaxAutoRetriesNextServer: 2
+ OkToRetryOnAllOperations: false
+```
+其ribbon的重试，会在另外一个文章介绍。
 
 FeignClient如果超时，则抛出的异常为`RetryableException`
 > FeignClient重试机制，如果服务方的接口不是支持幂等，存在重复请求的情况，所以重试机制的开启要慎重。
+> 
