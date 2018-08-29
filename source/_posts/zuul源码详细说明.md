@@ -50,10 +50,36 @@ public class BuyiZuulApplication {
 ```
 以上就看看到zuul进行请求分发。
 
+# forward跳转 #
+一般情况下API网关只是作为系统的统一入口，但是有时候我们可能也需要在API网关上做一点业务逻辑操作。我们可以在buyi-zuul项目中新建一个controller。
+1. application.properities配置
+
+```
+#forward会直接路由到zuul的controller,path要带星号
+zuul.routes.local.path=/local/**
+zuul.routes..local.url=forward:/local
+```
+
+2. 控制器
+
+```
+@RestController
+public class HelloController {
+
+    @RequestMapping("/localh")
+    public String hello(){
+        return "hello buyi";
+    }
+}
+
+```
+
+> 在实际的项目场景中，遇到过页面跳转的情况，在这种场景下，forward使用方式就很合适。
+
 # 过滤器 #
 过滤器排序号数字越大，优先级越低
 zuul的Filter的生命周期，如下图：
-
+![](https://i.imgur.com/sZicSuN.png)
 ## 过滤器扩展 ##
 1. 继承ZuulFilter类，就可以实现扩展过滤的功能。
 
@@ -129,6 +155,7 @@ public class TestFilter extends ZuulFilter {
 
 ## 过滤器源码 ##
 Zuul自带的核心过滤器：
+![](https://i.imgur.com/0AsYJ5N.png)
 
 如上图所示，在默认启用的过滤器中包含了三种不同生命周期的过滤器，这些过滤器都非常重要，可以帮助我们理解Zuul对外部请求处理的过程，以及帮助我们如何在此基础上扩展过滤器去完成自身系统需要的功能。下面，我们将逐个地对这些过滤器做一些详细的介绍。
 
@@ -173,7 +200,7 @@ SendForwardFilter：它的执行顺序为500，是route阶段第三个执行的�
 SendErrorFilter：它的执行顺序为0，是post阶段第一个执行的过滤器。该过滤器仅在请求上下文中包含error.status_code参数（由之前执行的过滤器设置的错误编码）并且还没有被该过滤器处理过的时候执行。而该过滤器的具体逻辑就是利用请求上下文中的错误信息来组织成一个forward到API网关/error错误端点的请求来产生错误响应。
 SendResponseFilter：它的执行顺序为1000，是post阶段最后执行的过滤器。该过滤器会检查请求上下文中是否包含请求响应相关的头信息、响应数据流或是响应体，只有在包含它们其中一个的时候就会执行处理逻辑。而该过滤器的处理逻辑就是利用请求上下文的响应信息来组织需要发送回客户端的响应内容。
 
-
+![](https://i.imgur.com/M2RnBBI.png)
 
 
 # 路由定位器 #
