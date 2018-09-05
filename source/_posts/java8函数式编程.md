@@ -1,3 +1,11 @@
+---
+title: Java8函数式编程
+date: 2018-08-20 22:43:40
+categories: Java
+tags: 
+- Java8
+---
+
 # Java8函数式编程 #
 
 ## 重要的函数接口 ##

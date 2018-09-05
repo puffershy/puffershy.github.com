@@ -1,10 +1,10 @@
 ---
 title: RxJava 从入门到放弃再到不离不弃
 date: 2018-08-06 15:43:40
-categories: java
+categories: Java
 tags: 
-- 
 ---
+
 ## RxJava是什么 ##
 >a library for composing asynchronous and event-based programs using observable sequences for the Java VM
 >解释：一个对于构成使用的Java虚拟机观察序列异步和基于事件的程序库
