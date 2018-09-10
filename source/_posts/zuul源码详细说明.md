@@ -204,3 +204,37 @@ SendResponseFilter：它的执行顺序为1000，是post阶段最后执行的过
 
 
 # 路由定位器 #
+zuul默认路由定位器配置如下：
+```
+org.springframework.cloud.netflix.zuul.ZuulProxyAutoConfiguration
+……
+@Bean
+@ConditionalOnMissingBean(DiscoveryClientRouteLocator.class)
+public DiscoveryClientRouteLocator discoveryRouteLocator() {
+	return new DiscoveryClientRouteLocator(this.server.getServletPrefix(),
+			this.discovery, this.zuulProperties, this.serviceRouteMapper, this.registration);
+}
+
+```
+zuul在上下文不存在DiscoveryClientRouteLocator对象时，实例化一个DiscoveryClientRouteLocator。DiscoveryClientRouteLocator是zuul的默认路由定位器。
+
+```
+    org.springframework.cloud.netflix.zuul.ZuulServerAutoConfiguration
+……
+	@Bean
+	@Primary
+	public CompositeRouteLocator primaryRouteLocator(
+			Collection<RouteLocator> routeLocators) {
+		return new CompositeRouteLocator(routeLocators);
+	}
+
+	@Bean
+	@ConditionalOnMissingBean(SimpleRouteLocator.class)
+	public SimpleRouteLocator simpleRouteLocator() {
+		return new SimpleRouteLocator(this.server.getServletPrefix(),
+				this.zuulProperties);
+	}
+```
+构建路由定位器链。
+
+### DiscoveryClientRouteLocator ###
