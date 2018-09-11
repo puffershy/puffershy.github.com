@@ -1,5 +1,5 @@
 ---
-title: Zuul源码详细说明
+title: Spring Cloud Zuul源码详细说明
 date: 2018-08-28 22:43:40
 categories: Spring Cloud
 tags: 
@@ -17,6 +17,8 @@ zuul主要做反向代理、负载均衡、fallback回退。它包含了对请�
 
 # 搭建zuul#
 1. pom.xml添加依赖
+
+
 ```
 <dependency>
     <groupId>org.springframework.cloud</groupId>
@@ -24,19 +26,28 @@ zuul主要做反向代理、负载均衡、fallback回退。它包含了对请�
 </dependency>
 ```
 2. 配置application.properites文件
+
 ```
 spring.application.name=buyi-zuul
 server.port=8899
+
 #这里的配置表示，访问/it/** 直接重定向到http://www.baidu.com/**
 zuul.routes.baidu.path=/it/**
 zuul.routes.baidu.url=http://www.baidu.com/
+
 #服务映射的路径，通过这路径就可以从外部访问你的服务了，目的是为了不爆露你机器的IP，面向服务的路由了，给你选一个可用的出来，
 zuul.routes.buyi-client.path=/buyi-client/**
 zuul.routes..buyi-client.service-id=buyi-client
+
+#简约写法
+zuul.routes.buyi-client = /buyi-client/**
 ```
+
 zuul的配置的全部属性见`org.springframework.cloud.netflix.zuul.filters.ZuulProperties`，其具体相关属性的作用，会在后面详细介绍。
 
 3. 启动类
+
+
 ```
 @SpringBootApplication
 @EnableZuulProxy
@@ -51,7 +62,7 @@ public class BuyiZuulApplication {
 以上就看看到zuul进行请求分发。
 
 # forward跳转 #
-一般情况下API网关只是作为系统的统一入口，但是有时候我们可能也需要在API网关上做一点业务逻辑操作。我们可以在buyi-zuul项目中新建一个controller。
+一般情况下API网关只是作为系统的统一入口，但是有时候我们可能也需要在API网关上做一点业务逻辑操作，这个时候就要用到Zuul的本地跳转。我们可以在buyi-zuul项目中新建一个controller。
 1. application.properities配置
 
 ```
@@ -75,6 +86,62 @@ public class HelloController {
 ```
 
 > 在实际的项目场景中，遇到过页面跳转的情况，在这种场景下，forward使用方式就很合适。
+
+# Zuul常用配置 #
+## 重定向 ##
+使用Nginx的时候，会涉及到一个请求头信息的配置，防止页面重定向后跳转到上游服务器上去，这个问题在Zuul中一样存在，假设我的feign-consumer中提供了一个接口/hello4，当访问/hello4接口的时候，页面重定向到/hello，默认情况下，重定向的地址是具体的服务实例的地址，而不是API网关的跳转地址，这种做法会暴露真实的服务地址，所以需要在Zuul中配置，配置方式很简单，如下：
+
+```
+zuul.add-host-header=true
+```
+## 请求头敏感信息 ##
+默认情况下，敏感的头信息无法经过API网关进行传递，我们可以通过如下配置使之可以传递：
+
+```
+zuul.routes.buyi-client.sensitive-headers=
+```
+
+## 重试 ##
+在Zuul中，Ribbon和Hystrix的配置还是和之前的配置方式一致，这里我就不赘述了，如果我们想关闭Hystrix重试机制，可以通过如下方式：
+
+关闭全局重试机制,默认为关闭：
+```
+zuul.retryable=false
+```
+关闭某一个服务的重试机制：
+```
+zuul.routes.buyi-client.retryable=false
+```
+
+开启重试配置：
+
+```
+#指定服务重试开关
+zuul.routes.buyi-client.retryable=true
+
+#zuul.retryable=true
+
+#启动负载均衡的重试机制，默认true
+#spring.cloud.loadbalancer.retry.enabled=true
+#Hystrix是否启用超时时间
+#hystrix.command.default.execution.timeout.enabled=true
+#Hystrix断路器的超时时间，默认是1s，断路器的超时时间需要大于ribbon的超时时间，不然不会触发重试。
+hystrix.command.default.execution.isolation.thread.timeoutInMilliseconds=30000
+
+
+
+#对当前服务的重试次数
+ribbon.MaxAutoRetries=2
+#切换相同Server的次数
+ribbon.MaxAutoRetriesNextServer=0
+ribbon.ReadTimeout = 5000
+ribbon.ConnectTimeout = 1000
+ribbon.OkToRetryOnAllOperations = true
+
+```
+
+
+
 
 # 过滤器 #
 过滤器排序号数字越大，优先级越低
