@@ -12,7 +12,7 @@ tags:
 springcloud组件优化：https://www.cnblogs.com/justlove/p/8028361.html
 
 官方超时文档：http://cloud.spring.io/spring-cloud-netflix/single/spring-cloud-netflix.html#_zuul_timeouts
-
+高可用：https://www.cnblogs.com/ityouknow/archive/2018/01/31/8391593.html
 
 ### HttpClientRibbonCommandFactory ###
 
