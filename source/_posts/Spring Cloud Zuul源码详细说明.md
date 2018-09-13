@@ -139,6 +139,7 @@ ribbon.ConnectTimeout = 1000
 ribbon.OkToRetryOnAllOperations = true
 
 ```
+> zuul重试，必须依赖spring-retry架包。
 
 
 
@@ -147,6 +148,8 @@ ribbon.OkToRetryOnAllOperations = true
 过滤器排序号数字越大，优先级越低
 zuul的Filter的生命周期，如下图：
 ![](https://i.imgur.com/sZicSuN.png)
+
+
 ## 过滤器扩展 ##
 1. 继承ZuulFilter类，就可以实现扩展过滤的功能。
 
