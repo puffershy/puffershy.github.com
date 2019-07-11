@@ -1,6 +1,6 @@
 ---
-title: Spring Cloud Zuul服务转发源码详解
-date: 2018-09-11 11:11:11
+title: Spring Cloud Zuul（三）服务转发源码详解
+date: 2019-07-11 11:11:11
 categories: Spring Cloud
 tags: 
 - zuul

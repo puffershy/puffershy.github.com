@@ -1,5 +1,5 @@
 ---
-title: Spring Cloud Zuul源码详细说明
+title: Spring Cloud Zuul（一）入门详解
 date: 2018-08-28 22:43:40
 categories: Spring Cloud
 tags: 
@@ -308,3 +308,83 @@ zuul在上下文不存在DiscoveryClientRouteLocator对象时，实例化一个D
 构建路由定位器链。
 
 ### DiscoveryClientRouteLocator ###
+```
+	@Override
+	protected LinkedHashMap<String, ZuulRoute> locateRoutes() {
+		LinkedHashMap<String, ZuulRoute> routesMap = new LinkedHashMap<String, ZuulRoute>();
+		routesMap.putAll(super.locateRoutes());
+		if (this.discovery != null) {
+			Map<String, ZuulRoute> staticServices = new LinkedHashMap<String, ZuulRoute>();
+			for (ZuulRoute route : routesMap.values()) {
+				String serviceId = route.getServiceId();
+				if (serviceId == null) {
+					serviceId = route.getId();
+				}
+				if (serviceId != null) {
+					staticServices.put(serviceId, route);
+				}
+			}
+			// Add routes for discovery services by default
+			List<String> services = this.discovery.getServices();
+			String[] ignored = this.properties.getIgnoredServices()
+					.toArray(new String[0]);
+			for (String serviceId : services) {
+				// Ignore specifically ignored services and those that were manually
+				// configured
+				String key = "/" + mapRouteToService(serviceId) + "/**";
+				if (staticServices.containsKey(serviceId)
+						&& staticServices.get(serviceId).getUrl() == null) {
+					// Explicitly configured with no URL, cannot be ignored
+					// all static routes are already in routesMap
+					// Update location using serviceId if location is null
+					ZuulRoute staticRoute = staticServices.get(serviceId);
+					if (!StringUtils.hasText(staticRoute.getLocation())) {
+						staticRoute.setLocation(serviceId);
+					}
+				}
+				if (!PatternMatchUtils.simpleMatch(ignored, serviceId)
+						&& !routesMap.containsKey(key)) {
+					// Not ignored
+					routesMap.put(key, new ZuulRoute(key, serviceId));
+				}
+			}
+		}
+		if (routesMap.get(DEFAULT_ROUTE) != null) {
+			ZuulRoute defaultRoute = routesMap.get(DEFAULT_ROUTE);
+			// Move the defaultServiceId to the end
+			routesMap.remove(DEFAULT_ROUTE);
+			routesMap.put(DEFAULT_ROUTE, defaultRoute);
+		}
+		LinkedHashMap<String, ZuulRoute> values = new LinkedHashMap<>();
+		for (Entry<String, ZuulRoute> entry : routesMap.entrySet()) {
+			String path = entry.getKey();
+			// Prepend with slash if not already present.
+			if (!path.startsWith("/")) {
+				path = "/" + path;
+			}
+			if (StringUtils.hasText(this.properties.getPrefix())) {
+				path = this.properties.getPrefix() + path;
+				if (!path.startsWith("/")) {
+					path = "/" + path;
+				}
+			}
+			values.put(path, entry.getValue());
+		}
+		return values;
+	}
+```
+
+路由定位器，默认将注册中心的所有服务进行路由定位。实际环境中，我们一般是指定路由服务，配置`zuul.ignored-services=*`，通过通配的方式，忽略注册中心的所有服务。
+zuul的路由定位器默认规则是，一个service-id只能对应一个路径，源码见`org.springframework.cloud.netflix.zuul.filters.ZuulProperties.ZuulRoute`，有时候业务上需要多种规则路径指向同一个服务，有两种解决方案：
+1. 继承DiscoveryClientRouteLocator重新方法`locateRoutes`；
+2. 匹配路径用正则表达式，但是需要符合springmvc的路径规则，且zuul会加工配路径，见`org.springframework.cloud.netflix.zuul.filters.SimpleRouteLocator#getRoute`；
+
+# 附 zuul常用配置 #
+key|配置值|备注
+---|---|---
+ribbon.httpclient.enabled|false|http开关，决定服务转发使用框架，和okhttp互斥
+ribbon.okhttp.enabled|true|okhttp开关，决定服务转发使用框架，和httpclient互斥
+zuul.routes.puffer-admin|/admin/**|配置路由映射，puffer-admin服务名，/admin/**为路径
+zuul.ignored-services|*|指定路由映射忽略的地址，支持正则表达式，*为忽略全部
+spring.http.multipart.enabled|true|支持图片上传，true-表示支持，false-表示不支持
+spring.http.multipart.max-file-size|3MB|文件大小限制
