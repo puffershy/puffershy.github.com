@@ -1,0 +1,160 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>Druid连接池介绍 | Charrington House</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/normalize/8.0.0/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">Druid连接池介绍</h1><a id="logo" href="/.">Charrington House</a><p class="description">是谁出的题这么难啊，到处都是正确的答案。</p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">Druid连接池介绍</h1><div class="post-meta">Dec 24, 2018</div><div class="post-content"><h1 id="1-Druid是什么"><a href="#1-Druid是什么" class="headerlink" title="1.Druid是什么"></a>1.Druid是什么</h1><p>Druid单词来源于西方古罗马的神话人物，中文常常翻译成德鲁伊。是阿里巴巴创建的一个开源项目，它是一个为监控而生的数据库连接池项目。</p>
+<h1 id="2-Druid源码"><a href="#2-Druid源码" class="headerlink" title="2.Druid源码"></a>2.Druid源码</h1><p>源码托管在github上，源码仓库地址：<a href="https://github.com/alibaba/druid" target="_blank" rel="noopener">https://github.com/alibaba/druid</a></p>
+<h1 id="3-maven配置druid"><a href="#3-maven配置druid" class="headerlink" title="3.maven配置druid"></a>3.maven配置druid</h1><p>maven中央仓库地址：<a href="https://mvnrepository.com/artifact/com.alibaba/druid" target="_blank" rel="noopener">https://mvnrepository.com/artifact/com.alibaba/druid</a><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&lt;!-- https://mvnrepository.com/artifact/com.alibaba/druid --&gt;</span><br><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;com.alibaba&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;druid&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;1.1.12&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure></p>
+<h1 id="4-Druid配置项"><a href="#4-Druid配置项" class="headerlink" title="4.Druid配置项"></a>4.Druid配置项</h1><p>和其他连接池一样Druid的DataSource类为：<code>com.alibaba.druid.pool.DruidDataSource</code>，基本配置参数如下：</p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>缺省值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>name</td>
+<td>‘’</td>
+<td>配置这个属性的意义在于，如果存在多个数据源，监控的时候可以通过名字来区分开来。如果没有配置，将会生成一个名字，格式是：”DataSource-“ + System.identityHashCode(this)</td>
+</tr>
+<tr>
+<td>jdbcUrl</td>
+<td>‘’</td>
+<td>连接数据库的url，不同数据库不一样。例如：mysql jdbc: mysql://10.20.153.104:3306/druid2,oracle: jdbc: oracle: thin:@10.20.149.85: 1521: ocnauto</td>
+</tr>
+<tr>
+<td>username</td>
+<td>‘’</td>
+<td>连接数据库的用户名</td>
+</tr>
+<tr>
+<td>password</td>
+<td>‘’</td>
+<td>连接数据库的密码。如果你不希望密码直接写在配置文件中，可以使用ConfigFilter。详细看这里：<a href="https://github.com/alibaba/druid/wiki/%E4%BD%BF%E7%94%A8ConfigFilter" target="_blank" rel="noopener">https://github.com/alibaba/druid/wiki/%E4%BD%BF%E7%94%A8ConfigFilter</a></td>
+</tr>
+<tr>
+<td>driverClassName</td>
+<td>‘’</td>
+<td>根据url自动识别    这一项可配可不配，如果不配置druid会根据url自动识别dbType，然后选择相应的driverClassName(建议配置下)</td>
+</tr>
+<tr>
+<td>initialSize</td>
+<td>0</td>
+<td>初始化时建立物理连接的个数。初始化发生在显示调用init方法，或者第一次getConnection时</td>
+</tr>
+<tr>
+<td>maxActive</td>
+<td>8</td>
+<td>最大连接池数量</td>
+</tr>
+<tr>
+<td>maxIdle</td>
+<td>8</td>
+<td>已经不再使用，配置了也没效果</td>
+</tr>
+<tr>
+<td>minIdle</td>
+<td>‘’</td>
+<td>最小连接池数量</td>
+</tr>
+<tr>
+<td>maxWait</td>
+<td>‘’</td>
+<td>获取连接时最大等待时间，单位毫秒。配置了maxWait之后，缺省启用公平锁，并发效率会有所下降，如果需要可以通过配置useUnfairLock属性为true使用非公平锁。</td>
+</tr>
+<tr>
+<td>poolPreparedStatements</td>
+<td>false</td>
+<td>是否缓存preparedStatement，也就是PSCache。PSCache对支持游标的数据库性能提升巨大，比如说oracle。在mysql下建议关闭。</td>
+</tr>
+<tr>
+<td>maxOpenPreparedStatements</td>
+<td>-1</td>
+<td>要启用PSCache，必须配置大于0，当大于0时，poolPreparedStatements自动触发修改为true。在Druid中，不会存在Oracle下PSCache占用内存过多的问题，可以把这个数值配置大一些，比如说100</td>
+</tr>
+<tr>
+<td>validationQuery</td>
+<td>‘’</td>
+<td>用来检测连接是否有效的sql，要求是一个查询语句。如果validationQuery为null，testOnBorrow、testOnReturn、testWhileIdle都不会其作用。</td>
+</tr>
+<tr>
+<td>testOnBorrow</td>
+<td>true</td>
+<td>申请连接时执行validationQuery检测连接是否有效，做了这个配置会降低性能。</td>
+</tr>
+<tr>
+<td>testOnReturn</td>
+<td>false</td>
+<td>归还连接时执行validationQuery检测连接是否有效，做了这个配置会降低性能</td>
+</tr>
+<tr>
+<td>testWhileIdle</td>
+<td>false</td>
+<td>建议配置为true，不影响性能，并且保证安全性。申请连接的时候检测，如果空闲时间大于timeBetweenEvictionRunsMillis，执行validationQuery检测连接是否有效。</td>
+</tr>
+<tr>
+<td>timeBetweenEvictionRunsMillis</td>
+<td>‘’</td>
+<td>有两个含义：1) Destroy线程会检测连接的间隔时间2) testWhileIdle的判断依据，详细看testWhileIdle属性的说明</td>
+</tr>
+<tr>
+<td>numTestsPerEvictionRun</td>
+<td>‘’</td>
+<td>不再使用，一个DruidDataSource只支持一个EvictionRun</td>
+</tr>
+<tr>
+<td>minEvictableIdleTimeMillis</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>connectionInitSqls</td>
+<td>‘’</td>
+<td>物理连接初始化的时候执行的sql</td>
+</tr>
+<tr>
+<td>exceptionSorter</td>
+<td>‘’</td>
+<td>根据dbType自动识别当数据库抛出一些不可恢复的异常时，抛弃连接</td>
+</tr>
+<tr>
+<td>filters</td>
+<td>‘’</td>
+<td>属性类型是字符串，通过别名的方式配置扩展插件，常用的插件有：监控统计用的filter:stat日志用的filter:log4j防御sql注入的filter:wall</td>
+</tr>
+<tr>
+<td>proxyFilters</td>
+<td>‘’</td>
+<td>类型是List&lt;com.alibaba.druid.filter.Filter&gt;，如果同时配置了filters和proxyFilters，是组合关系，并非替换关系</td>
+</tr>
+</tbody>
+</table>
+<h1 id="5-打开Druid的监控统计功能"><a href="#5-打开Druid的监控统计功能" class="headerlink" title="5.打开Druid的监控统计功能"></a>5.打开Druid的监控统计功能</h1><p>Druid内置提供一个StatFilter,用于统计监控信息。具体见官方文档：<a href="https://github.com/alibaba/druid/wiki/%E9%85%8D%E7%BD%AE_StatFilter" target="_blank" rel="noopener">https://github.com/alibaba/druid/wiki/%E9%85%8D%E7%BD%AE_StatFilter</a></p>
+<h1 id="6-使用Druid的内置监控页面"><a href="#6-使用Druid的内置监控页面" class="headerlink" title="6.使用Druid的内置监控页面"></a>6.使用Druid的内置监控页面</h1><p>Druid内置提供了一个StatViewServlet用于展示Druid的统计信息。<br>这个StatViewServlet的用途包括：</p>
+<ul>
+<li>提供监控信息展示的html页面</li>
+<li>提供监控信息的JSON API</li>
+</ul>
+<p>注意：使用StatViewServlet，建议使用druid 0.2.6以上版本。<br>官方文档：<a href="https://github.com/alibaba/druid/wiki/%E9%85%8D%E7%BD%AE_StatViewServlet%E9%85%8D%E7%BD%AE" target="_blank" rel="noopener">https://github.com/alibaba/druid/wiki/%E9%85%8D%E7%BD%AE_StatViewServlet%E9%85%8D%E7%BD%AE</a></p>
+<h1 id="7-内置监控中的Web和Spring关联监控配置"><a href="#7-内置监控中的Web和Spring关联监控配置" class="headerlink" title="7.内置监控中的Web和Spring关联监控配置"></a>7.内置监控中的Web和Spring关联监控配置</h1><ul>
+<li>Web关联监控配置<br><a href="https://github.com/alibaba/druid/wiki/%E9%85%8D%E7%BD%AE_%E9%85%8D%E7%BD%AEWebStatFilter" target="_blank" rel="noopener">https://github.com/alibaba/druid/wiki/%E9%85%8D%E7%BD%AE_%E9%85%8D%E7%BD%AEWebStatFilter</a></li>
+<li>Spring关联监控配置<br><a href="https://github.com/alibaba/druid/wiki/%E9%85%8D%E7%BD%AE_Druid%E5%92%8CSpring%E5%85%B3%E8%81%94%E7%9B%91%E6%8E%A7%E9%85%8D%E7%BD%AE" target="_blank" rel="noopener">https://github.com/alibaba/druid/wiki/%E9%85%8D%E7%BD%AE_Druid%E5%92%8CSpring%E5%85%B3%E8%81%94%E7%9B%91%E6%8E%A7%E9%85%8D%E7%BD%AE</a></li>
+</ul>
+<h1 id="8-配置防御SQL注入攻击"><a href="#8-配置防御SQL注入攻击" class="headerlink" title="8.配置防御SQL注入攻击"></a>8.配置防御SQL注入攻击</h1><p>防御SQL注入攻击，主要是WallFilter过滤器起作用。<br>官方文档：<a href="https://github.com/alibaba/druid/wiki/%E9%85%8D%E7%BD%AE-wallfilter" target="_blank" rel="noopener">https://github.com/alibaba/druid/wiki/%E9%85%8D%E7%BD%AE-wallfilter</a></p>
+<h1 id="9-Druid参考配置"><a href="#9-Druid参考配置" class="headerlink" title="9.Druid参考配置"></a>9.Druid参考配置</h1><p>DruidDataSource大部分属性都是参考DBCP的，如果你原来就是使用DBCP，迁移是十分方便的。通用配置：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">&lt;bean id=&quot;dataSource&quot; class=&quot;com.alibaba.druid.pool.DruidDataSource&quot; init-method=&quot;init&quot; destroy-method=&quot;close&quot;&gt; </span><br><span class="line">    &lt;property name=&quot;url&quot; value=&quot;$&#123;jdbc_url&#125;&quot; /&gt;</span><br><span class="line">    &lt;property name=&quot;username&quot; value=&quot;$&#123;jdbc_user&#125;&quot; /&gt;</span><br><span class="line">    &lt;property name=&quot;password&quot; value=&quot;$&#123;jdbc_password&#125;&quot; /&gt;</span><br><span class="line"></span><br><span class="line">    &lt;property name=&quot;filters&quot; value=&quot;stat&quot; /&gt;</span><br><span class="line"></span><br><span class="line">    &lt;property name=&quot;maxActive&quot; value=&quot;20&quot; /&gt;</span><br><span class="line">    &lt;property name=&quot;initialSize&quot; value=&quot;1&quot; /&gt;</span><br><span class="line">    &lt;property name=&quot;maxWait&quot; value=&quot;60000&quot; /&gt;</span><br><span class="line">    &lt;property name=&quot;minIdle&quot; value=&quot;1&quot; /&gt;</span><br><span class="line"></span><br><span class="line">    &lt;property name=&quot;timeBetweenEvictionRunsMillis&quot; value=&quot;60000&quot; /&gt;</span><br><span class="line">    &lt;property name=&quot;minEvictableIdleTimeMillis&quot; value=&quot;300000&quot; /&gt;</span><br><span class="line"></span><br><span class="line">    &lt;property name=&quot;testWhileIdle&quot; value=&quot;true&quot; /&gt;</span><br><span class="line">    &lt;property name=&quot;testOnBorrow&quot; value=&quot;false&quot; /&gt;</span><br><span class="line">    &lt;property name=&quot;testOnReturn&quot; value=&quot;false&quot; /&gt;</span><br><span class="line"></span><br><span class="line">    &lt;property name=&quot;poolPreparedStatements&quot; value=&quot;true&quot; /&gt;</span><br><span class="line">    &lt;property name=&quot;maxOpenPreparedStatements&quot; value=&quot;20&quot; /&gt;</span><br><span class="line"></span><br><span class="line">    &lt;property name=&quot;asyncInit&quot; value=&quot;true&quot; /&gt;</span><br><span class="line">&lt;/bean&gt;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>在上面的配置中，通常你需要配置url、username、password，maxActive这三项。</li>
+<li>Druid会自动跟url识别驱动类名，如果连接的数据库非常见数据库，配置属性driverClassName</li>
+<li>asyncInit是1.1.4中新增加的配置，如果有initialSize数量较多时，打开会加快应用启动时间</li>
+</ul>
+<p>官方文档：<a href="https://github.com/alibaba/druid/wiki/DruidDataSource%E9%85%8D%E7%BD%AE" target="_blank" rel="noopener">https://github.com/alibaba/druid/wiki/DruidDataSource%E9%85%8D%E7%BD%AE</a>，还有：</p>
+<ul>
+<li>连接阿里云AnalyticDB配置</li>
+<li>连接阿里云Data Lake Analytics配置</li>
+</ul>
+<h1 id="10-Druid连接泄漏"><a href="#10-Druid连接泄漏" class="headerlink" title="10.Druid连接泄漏"></a>10.Druid连接泄漏</h1><p>当程序存在缺陷时，申请的连接忘记关闭，这时候，就存在连接泄漏了。Druid提供了RemoveAbandanded相关配置，用来关闭长时间不使用的连接。例如：</p>
+<h2 id="配置："><a href="#配置：" class="headerlink" title="配置："></a>配置：</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&lt;bean id=&quot;dataSource&quot; class=&quot;com.alibaba.druid.pool.DruidDataSource&quot; destroy-method=&quot;close&quot;&gt;</span><br><span class="line">  	... ...</span><br><span class="line">  	&lt;property name=&quot;removeAbandoned&quot; value=&quot;true&quot; /&gt; &lt;!-- 打开removeAbandoned功能 --&gt;</span><br><span class="line">  	&lt;property name=&quot;removeAbandonedTimeout&quot; value=&quot;1800&quot; /&gt; &lt;!-- 1800秒，也就是30分钟 --&gt;</span><br><span class="line">  	&lt;property name=&quot;logAbandoned&quot; value=&quot;true&quot; /&gt; &lt;!-- 关闭abanded连接时输出错误日志 --&gt;</span><br><span class="line">  	... ...</span><br><span class="line">  &lt;/bean&gt;</span><br></pre></td></tr></table></figure>
+<p>配置removeAbandoned对性能会有一些影响，建议怀疑存在泄漏之后再打开。在上面的配置中，如果连接超过30分钟未关闭，就会被强行回收，并且日志记录连接申请时的调用堆栈。</p>
+<h2 id="内置监控页面查看未关闭连接堆栈信息"><a href="#内置监控页面查看未关闭连接堆栈信息" class="headerlink" title="内置监控页面查看未关闭连接堆栈信息"></a>内置监控页面查看未关闭连接堆栈信息</h2><p>当removeAbandoned=true之后，可以在内置监控界面datasource.html中的查看ActiveConnection StackTrace属性的，可以看到未关闭连接的具体堆栈信息，从而方便查出哪些连接泄漏了</p>
+<h2 id="web应用"><a href="#web应用" class="headerlink" title="web应用"></a>web应用</h2><p>如果你的应用配置了WebStatFilter: <a href="https://github.com/alibaba/druid/wiki/%E9%85%8D%E7%BD%AE_%E9%85%8D%E7%BD%AEWebStatFilter" target="_blank" rel="noopener">https://github.com/alibaba/druid/wiki/%E9%85%8D%E7%BD%AE_%E9%85%8D%E7%BD%AEWebStatFilter</a><br>在内置监控页面weburi-detail.html中，查看JdbcPoolConnectionOpenCount和JdbcPoolConnectionCloseCount属性，如果不相等，就是泄漏了。</p>
+<h1 id="11-Druid中使用PSCache内存过大问题"><a href="#11-Druid中使用PSCache内存过大问题" class="headerlink" title="11.Druid中使用PSCache内存过大问题"></a>11.Druid中使用PSCache内存过大问题</h1><p>连接Oracle数据库，打开PSCache，在其他的数据库连接池都会存在内存占用过多的问题，Druid是唯一解决这个问题的连接池。<br>官方文档：<a href="https://github.com/alibaba/druid/wiki/Oracle%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%8BPreparedStatementCache%E5%86%85%E5%AD%98%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88" target="_blank" rel="noopener">https://github.com/alibaba/druid/wiki/Oracle%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%8BPreparedStatementCache%E5%86%85%E5%AD%98%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88</a></p>
+</div><div class="tags"><a href="/tags/druid/">druid</a></div><div class="post-nav"><a class="pre" href="/2018/12/25/druid获取连接假死/">Druid获取连接假死</a><a class="next" href="/2018/12/12/2018全新互联网Java架构技术体系路线/">2018全新互联网Java架构技术体系路线</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"/><input type="hidden" name="sitesearch" value="https://yuchanghui.github.io"/></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring-Boot/">Spring Boot</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring-Cloud/">Spring Cloud</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/design-datterns/">design datterns</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/java/">java</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/mysql/">mysql</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/shiro/">shiro</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/微服务/">微服务</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/zuul/" style="font-size: 15px;">zuul</a> <a href="/tags/JWT/" style="font-size: 15px;">JWT</a> <a href="/tags/memcache/" style="font-size: 15px;">memcache</a> <a href="/tags/tair/" style="font-size: 15px;">tair</a> <a href="/tags/concurrent/" style="font-size: 15px;">concurrent</a> <a href="/tags/Java8/" style="font-size: 15px;">Java8</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/javassist/" style="font-size: 15px;">javassist</a> <a href="/tags/feign/" style="font-size: 15px;">feign</a> <a href="/tags/ribbon/" style="font-size: 15px;">ribbon</a> <a href="/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/tags/druid/" style="font-size: 15px;">druid</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/12/25/druid获取连接假死/">Druid获取连接假死</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/12/24/druid连接池介绍/">Druid连接池介绍</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/12/12/2018全新互联网Java架构技术体系路线/">2018全新互联网Java架构技术体系路线</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/11/13/Spring常用核心源码/">Spring常用核心源码</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/11/11/Spring Cloud Zuul源码解析/">Spring Cloud Zuul源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/10/30/mysql分区/">mysql分区</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/13/Spring Boot异常处理详解/">Spring Boot异常处理详解</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/13/Spring MVC异常处理详解/">Spring MVC异常处理详解</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/11/spring Cloud组件超时整理/">Spring Cloud组件超时整理</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/11/Spring Cloud Zuul服务转发源码详解/">Spring Cloud Zuul服务转发源码详解</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://www.google.com/" title="谷歌" target="_blank">谷歌</a><ul></ul><a href="http://www.infoq.com/cn/" title="InfoQ" target="_blank">InfoQ</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2018 <a href="/." rel="nofollow">Charrington House.</a> Powered by Buyi.</div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//cdn.bootcss.com/fancybox/3.2.5/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/fancybox/3.2.5/jquery.fancybox.min.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script></div></body></html>

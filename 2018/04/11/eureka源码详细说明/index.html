@@ -1,0 +1,209 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>Eureka源码详解 | Charrington House</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/normalize/8.0.0/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">Eureka源码详解</h1><a id="logo" href="/.">Charrington House</a><p class="description">是谁出的题这么难啊，到处都是正确的答案。</p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">Eureka源码详解</h1><div class="post-meta">Apr 11, 2018<span> | </span><span class="category"><a href="/categories/Spring-Cloud/">Spring Cloud</a></span></div><div class="post-content"><hr>
+<p><img src="https://i.imgur.com/xPl8okD.png" alt=""><br>Eureka Server是对等集群，其他Server也需要同步这一注册信息。与zookeeper相比，Eureka并不追求很强的一致性，而是认为A（可用性）和P（分区容错性）更重要。</p>
+<h1 id="1-eureka-server-启动"><a href="#1-eureka-server-启动" class="headerlink" title="1. eureka server 启动"></a>1. eureka server 启动</h1><p>spring eureka server启动类org.springframework.cloud.netflix.eureka.server.EurekaServerInitializerConfiguration原样覆盖了eureka servlet启动逻辑。<br>eureka servlet启动主要做以下几件事：</p>
+<ol>
+<li>从相邻eureka节点复制注册列表</li>
+<li>生成evictionTimer（定时器）进行Renew（服务续约），默认30秒发送心跳，1分钟就是2次，并设置eureka server状态为up(上线)</li>
+<li>注册所有监控统计监听</li>
+<li>触发事件EurekaRegistryAvailableEvent（Eureka注册中心启动事件），EurekaServerStartedEvent(Server启动事件)</li>
+</ol>
+<p>其中spring并没有去实现EurekaRegistryAvailableEvent（Eureka注册中心启动事件）和EurekaServerStartedEvent(Server启动事件)，所以在可以针对这两事件进行业务扩展。譬如发邮件等通知信息等。<br>后期扩展如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">@Component</span><br><span class="line">public class EurekaEventListener&#123;</span><br><span class="line"></span><br><span class="line">	@EventListener</span><br><span class="line">	public void listen(EurekaRegistryAvailableEvent event)&#123;</span><br><span class="line">		 InstanceInfo instanceInfo = event.getInstanceInfo();  </span><br><span class="line">         System.out.println(instanceInfo);  </span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h1 id="2-Eureka-Server事件介绍"><a href="#2-Eureka-Server事件介绍" class="headerlink" title="2. Eureka Server事件介绍"></a>2. Eureka Server事件介绍</h1><p>监听eureka服务中心的一些状态，就需要通过eureka server的事件通知。eureka server一共有5个事件。位于架包spring-cloud-netflix-eureka-server.1.4.2.RELEASE.jar的org.springframework.context.ApplicationEvent下：</p>
+<ol>
+<li>EurekaInstanceCanceledEvent 服务下线事件</li>
+<li>EurekaInstanceRegisteredEvent 服务注册事件</li>
+<li>EurekaInstanceRenewedEvent 服务续约事件</li>
+<li>EurekaRegistryAvailableEvent Eureka注册中心启动事件</li>
+<li>EurekaServerStartedEvent Eureka Server启动事件</li>
+</ol>
+<h1 id="3-Register（服务注册）"><a href="#3-Register（服务注册）" class="headerlink" title="3. Register（服务注册）"></a>3. Register（服务注册）</h1><p>应用向服务中心注册服务的时候是通过调用<strong>com.netflix.eureka.resources.ApplicationResource.addInstance</strong>来应用注册。同时，当应用的服务状态发生变化时，也会调用来更新服务状态。<br>接口<strong>addInstance</strong>参数<em>isReplication</em>用来判断是来自应用的注册（null），还是Eureka Server的注册（true）。</p>
+<p>注册服务过程主要做以下几件事：</p>
+<ol>
+<li>获取服务失效时间leaseDuration，默认时间90秒（该判断服务器失效时间由客户端传值）</li>
+<li>触发应用注册事件EurekaInstanceRegisteredEvent（服务注册事件）</li>
+<li>应用注册到服务列表</li>
+<li>复制注册信息到其他节点，并排除当前节点</li>
+</ol>
+<p>接口核心代码逻辑如下：</p>
+<ol>
+<li>ApplicationResource类接收Http服务请求，调用PeerAwareInstanceRegistryImpl的register方法。</li>
+<li>PeerAwareInstanceRegistryImpl完成服务注册后，调用replicateToPeers向其它Eureka Server节点（Peer）做状态同步</li>
+</ol>
+<p><img src="http://nobodyiam.com/images/2016-06-25/eureka-server-register.png" alt=""><br>服务注册列表保存在<strong>com.netflix.eureka.registry.AbstractInstanceRegistry</strong>的一个嵌套的hash map中：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">private final ConcurrentHashMap&lt;String, Map&lt;String, Lease&lt;InstanceInfo&gt;&gt;&gt; registry</span><br><span class="line">            = new ConcurrentHashMap&lt;String, Map&lt;String, Lease&lt;InstanceInfo&gt;&gt;&gt;();</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>第一层hash map的key是app name,也就是应用名称</li>
+<li>第二层hash map的map的key是instance name,也就是实例名字</li>
+</ul>
+<h1 id="4-Renew（服务续约）"><a href="#4-Renew（服务续约）" class="headerlink" title="4. Renew（服务续约）"></a>4. Renew（服务续约）</h1><p>renew操作由应用定期调用，类似发送心跳heartbeat。主要是告诉服务注册中心应用还活着，避免服务被剔除掉。接入实现如下图：<br><img src="http://nobodyiam.com/images/2016-06-25/eureka-server-renew.png" alt=""><br>通过调用服务注册中心的<strong>com.netflix.eureka.resources.InstanceResource.renewLease</strong>来续约。续约过程主要做一下几件事情：</p>
+<ol>
+<li>刷新当前节点的续约时间</li>
+<li>触发EurekaInstanceRenewedEvent事件（服务续约事件）</li>
+<li>向其他注册中心发送续约请求，并排除当前节点</li>
+</ol>
+<h1 id="5-Cancel（服务下线）"><a href="#5-Cancel（服务下线）" class="headerlink" title="5. Cancel（服务下线）"></a>5. Cancel（服务下线）</h1><p>cancel（服务下线）操作一般在应用<em>shut down</em>的时候调用，用来把自身的服务从Eureka Server中删除，以防客户端调用不存在的服务。接口调用情况如下：<br><img src="http://nobodyiam.com/images/2016-06-25/eureka-server-cancel.png" alt=""><br>服务下线过程主要做以下几件事情：</p>
+<ol>
+<li>触发EurekaInstanceCanceledEvent事件（服务下线事件）</li>
+<li>当前节点服务下线</li>
+<li>向其他注册中心发送服务下线请求，并排除当前节点</li>
+</ol>
+<h1 id="6-Fetch-Registries（获取服务注册列表）"><a href="#6-Fetch-Registries（获取服务注册列表）" class="headerlink" title="6. Fetch Registries（获取服务注册列表）"></a>6. Fetch Registries（获取服务注册列表）</h1><p>Fetch Registries操作由服务消费调用，用来获取Eureka Server上注册的服务。为了提高性能，服务列表在Eureka Server会缓存一份，同时每30秒更新一次。<br>接口<code>com.netflix.eureka.resources.ApplicationsResource#getContainers()</code><br><img src="http://nobodyiam.com/images/2016-06-25/eureka-server-fetch.png" alt=""></p>
+<h1 id="7-Eviction（失效服务剔除）"><a href="#7-Eviction（失效服务剔除）" class="headerlink" title="7. Eviction（失效服务剔除）"></a>7. Eviction（失效服务剔除）</h1><p>Eviction（失效服务剔除）用来定期在Eureka Server检测失效的服务，检测标准就是超过一定时间没有Renew的服务。</p>
+<p>默认失效时间为90秒，也就是如果有服务超过90秒没有向Eureka Server发起Renew请求的话，就会被当做失效服务剔除掉。</p>
+<p>失效时间可以通过eureka.instance.leaseExpirationDurationInSeconds进行配置，定期扫描时间可以通过eureka.server.evictionIntervalTimerInMs进行配置。</p>
+<p>接口实现逻辑见下图：<br><img src="http://nobodyiam.com/images/2016-06-25/eureka-server-evict.png" alt=""></p>
+<h1 id="8-How-Peer-Replicates-如何复制服务列表"><a href="#8-How-Peer-Replicates-如何复制服务列表" class="headerlink" title="8. How Peer Replicates(如何复制服务列表)"></a>8. How Peer Replicates(如何复制服务列表)</h1><p>在前面的Register、Renew、Cancel接口实现中，我们看到了都会有replicateToPeers操作，这个就是用来做Peer之间的状态同步。</p>
+<p>通过这种方式，Service Provider只需要通知到任意一个Eureka Server后就能保证状态会在所有的Eureka Server中得到更新。</p>
+<p>具体实现方式其实很简单，就是接收到Service Provider请求的Eureka Server，把请求再次转发到其它的Eureka Server，调用同样的接口，传入同样的参数，除了会在header中标记isReplication=true，从而避免重复的replicate。</p>
+<h1 id="9-How-Peer-Nodes-are-Discovered"><a href="#9-How-Peer-Nodes-are-Discovered" class="headerlink" title="9.How Peer Nodes are Discovered"></a>9.How Peer Nodes are Discovered</h1><p>那大家可能会有疑问，Eureka Server是怎么知道有多少Peer的呢？</p>
+<p>Eureka Server在启动后会调用EurekaClientConfig.getEurekaServerServiceUrls来获取所有的Peer节点，并且会定期更新。定期更新频率可以通过eureka.server.peerEurekaNodesUpdateIntervalMs配置。</p>
+<p>这个方法的默认实现是从配置文件读取，所以如果Eureka Server节点相对固定的话，可以通过在配置文件中配置来实现。</p>
+<p>如果希望能更灵活的控制Eureka Server节点，比如动态扩容/缩容，那么可以override getEurekaServerServiceUrls方法，提供自己的实现，比如我们的项目中会通过数据库读取Eureka Server列表。</p>
+<p>具体实现如下图所示：<br><img src="http://nobodyiam.com/images/2016-06-25/eureka-server-peer-discovery.png" alt=""></p>
+<h1 id="10-How-New-Peer-Initializes"><a href="#10-How-New-Peer-Initializes" class="headerlink" title="10.How New Peer Initializes"></a>10.How New Peer Initializes</h1><p>最后再来看一下一个新的Eureka Server节点加进来，或者Eureka Server重启后，如何来做初始化，从而能够正常提供服务。</p>
+<p>具体实现如下图所示，简而言之就是启动时把自己当做是Service Consumer从其它Peer Eureka获取所有服务的注册信息。然后对每个服务，在自己这里执行Register，isReplication=true，从而完成初始化。<br><img src="http://nobodyiam.com/images/2016-06-25/eureka-server-peer-init.png" alt=""></p>
+<h1 id="11-Service-Provider实现细节"><a href="#11-Service-Provider实现细节" class="headerlink" title="11. Service Provider实现细节"></a>11. Service Provider实现细节</h1><p>现在来看下Service Provider的实现细节，主要就是Register、Renew、Cancel这3个操作。</p>
+<h2 id="11-1-Register"><a href="#11-1-Register" class="headerlink" title="11.1 Register"></a>11.1 Register</h2><p>Service Provider要对外提供服务，一个很重要的步骤就是把自己注册到Eureka Server上。</p>
+<p>这部分的实现比较简单，只需要在启动时和实例状态变化时调用Eureka Server的接口注册即可。需要注意的是，需要确保配置eureka.client.registerWithEureka=true。<br><img src="http://nobodyiam.com/images/2016-06-25/service-provider-register.png" alt=""></p>
+<h2 id="11-2-Renew"><a href="#11-2-Renew" class="headerlink" title="11.2 Renew"></a>11.2 Renew</h2><p>Renew操作会在Service Provider端定期发起，用来通知Eureka Server自己还活着。 这里有两个比较重要的配置需要注意一下：</p>
+<ol>
+<li><p>eureka.instance.leaseRenewalIntervalInSecondsRenew频率。默认是30秒，也就是每30秒会向Eureka Server发起Renew操作。</p>
+</li>
+<li><p>eureka.instance.leaseExpirationDurationInSeconds服务失效时间。默认是90秒，也就是如果Eureka Server在90秒内没有接收到来自Service Provider的Renew操作，就会把Service Provider剔除。</p>
+</li>
+</ol>
+<p>具体实现如下：<br><img src="http://nobodyiam.com/images/2016-06-25/service-provider-renew.png" alt=""></p>
+<h2 id="11-3-Cancel"><a href="#11-3-Cancel" class="headerlink" title="11.3 Cancel"></a>11.3 Cancel</h2><p>在Service Provider服务shut down的时候，需要及时通知Eureka Server把自己剔除，从而避免客户端调用已经下线的服务。</p>
+<p>逻辑本身比较简单，通过对方法标记@PreDestroy，从而在服务shut down的时候会被触发。<br><img src="http://nobodyiam.com/images/2016-06-25/service-provider-cancel.png" alt=""></p>
+<h2 id="11-4-How-Eureka-Servers-are-Discovered"><a href="#11-4-How-Eureka-Servers-are-Discovered" class="headerlink" title="11.4 How Eureka Servers are Discovered"></a>11.4 How Eureka Servers are Discovered</h2><p>这里大家疑问又来了，Service Provider是怎么知道Eureka Server的地址呢？</p>
+<p>其实这部分的主体逻辑和3.3.7 How Peer Nodes are Discovered几乎是一样的。</p>
+<p>也是默认从配置文件读取，如果需要更灵活的控制，可以通过override getEurekaServerServiceUrls方法来提供自己的实现。定期更新频率可以通过eureka.client.eurekaServiceUrlPollIntervalSeconds配置。</p>
+<p><img src="http://nobodyiam.com/images/2016-06-25/client-discover-eureka-server.png" alt=""></p>
+<h1 id="12-Service-Consumer实现细节"><a href="#12-Service-Consumer实现细节" class="headerlink" title="12.Service Consumer实现细节"></a>12.Service Consumer实现细节</h1><p>Service Consumer这块的实现相对就简单一些，因为它只涉及到从Eureka Server获取服务列表和更新服务列表。</p>
+<h2 id="12-1-Fetch-Service-Registries"><a href="#12-1-Fetch-Service-Registries" class="headerlink" title="12.1 Fetch Service Registries"></a>12.1 Fetch Service Registries</h2><p>Service Consumer在启动时会从Eureka Server获取所有服务列表，并在本地缓存。需要注意的是，需要确保配置eureka.client.shouldFetchRegistry=true。<br><img src="http://nobodyiam.com/images/2016-06-25/service-consumer-fetch-registries.png" alt=""></p>
+<h2 id="12-2-Update-Service-Registries"><a href="#12-2-Update-Service-Registries" class="headerlink" title="12.2 Update Service Registries"></a>12.2 Update Service Registries</h2><p>由于在本地有一份缓存，所以需要定期更新，定期更新频率可以通过eureka.client.registryFetchIntervalSeconds配置。<br><img src="http://nobodyiam.com/images/2016-06-25/service-consumer-update-registries.png" alt=""></p>
+<h2 id="12-3-How-Eureka-Servers-are-Discovered"><a href="#12-3-How-Eureka-Servers-are-Discovered" class="headerlink" title="12.3  How Eureka Servers are Discovered"></a>12.3  How Eureka Servers are Discovered</h2><p>Service Consumer和Service Provider一样，也有一个如何知道Eureka Server地址的问题。</p>
+<p>其实由于Service Consumer和Service Provider本质上使用的是同一个Eureka客户端，所以这部分逻辑是一样的，这里就不再赘述了。详细信息见3.4.4节。</p>
+<h1 id="参数配置"><a href="#参数配置" class="headerlink" title="参数配置"></a>参数配置</h1><table>
+<thead>
+<tr>
+<th style="text-align:center">参数名</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">xxxx</td>
+<td style="text-align:center">应用没有renew（服务续约）的情况服务失效时间，单位秒，客户端配置</td>
+</tr>
+<tr>
+<td style="text-align:center">eureka.server.responseCacheAutoExpirationInSeconds</td>
+<td style="text-align:center">设置时间对象没有被写访问则对象从内存中删除的时间，默认180s，底层构建缓存的时候用到com.netflix.eureka.registry.ResponseCacheImpl.ResponseCacheImpl</td>
+</tr>
+</tbody>
+</table>
+<h1 id="Eureka-Server本地缓存原理"><a href="#Eureka-Server本地缓存原理" class="headerlink" title="Eureka Server本地缓存原理"></a>Eureka Server本地缓存原理</h1><p>Eureka Server会本地缓存一份服务列表，默认是30秒。主要实现类<code>com.netflix.eureka.registry.ResponseCacheImpl</code>。缓存结构划分成两级：</p>
+<pre><code>private final ConcurrentMap&lt;Key, Value&gt; readOnlyCacheMap = new ConcurrentHashMap&lt;Key, Value&gt;();
+private final LoadingCache&lt;Key, Value&gt; readWriteCacheMap;
+</code></pre><p>readWriteCacheMap使用guava的缓存框架，具体实例化如下：</p>
+<pre><code>this.readWriteCacheMap =
+        CacheBuilder.newBuilder().initialCapacity(1000)
+                //设置时间对象没有被写访问则对象从内存中删除
+                .expireAfterWrite(serverConfig.getResponseCacheAutoExpirationInSeconds(), TimeUnit.SECONDS)
+                .removalListener(new RemovalListener&lt;Key, Value&gt;() {
+                    @Override
+                    public void onRemoval(RemovalNotification&lt;Key, Value&gt; notification) {
+                        Key removedKey = notification.getKey();
+                        if (removedKey.hasRegions()) {
+                            Key cloneWithNoRegions = removedKey.cloneWithoutRegions();
+                            regionSpecificKeys.remove(cloneWithNoRegions, removedKey);
+                        }
+                    }
+                })
+                //实现自动加载
+                .build(new CacheLoader&lt;Key, Value&gt;() {
+                    @Override
+                    public Value load(Key key) throws Exception {
+                        //从实例中
+                        if (key.hasRegions()) {
+                            Key cloneWithNoRegions = key.cloneWithoutRegions();
+                            regionSpecificKeys.put(cloneWithNoRegions, key);
+                        }
+                        Value value = generatePayload(key);
+                        return value;
+                    }
+                });
+</code></pre><p>首先从readOnlyCacheMap获取，如果没有命中，则从调用readWriteCacheMap中获取。<br>这里涉及到常量配置：</p>
+<table>
+<thead>
+<tr>
+<th>参数名</th>
+<th>说明</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>eureka.server.useReadOnlyResponseCache</td>
+<td>Eureka Server服务列表是否使用缓存</td>
+<td>ResponseCacheImpl.ResponseCacheImpl()，如果设置为true，则会生成一个刷新缓存的任务</td>
+</tr>
+<tr>
+<td>eureka.server.responseCacheAutoExpirationInSeconds</td>
+<td>Eureka Server服务列表缓存久未读失效时间</td>
+<td>ResponseCacheImpl.ResponseCacheImpl()</td>
+</tr>
+<tr>
+<td>eureka.server.disableTransparentFallbackToOtherRegion</td>
+<td>是否获取其他区的服务列表</td>
+<td>AbstractInstanceRegistry.getApplications()</td>
+</tr>
+<tr>
+<td>eureka.server.responseCacheUpdateIntervalMs</td>
+<td>Eureka Server刷新服务列表缓存时间，默认30s</td>
+<td>ResponseCacheImpl#ResponseCacheImpl()</td>
+</tr>
+</tbody>
+</table>
+<h1 id="Eureka-Server-的坑"><a href="#Eureka-Server-的坑" class="headerlink" title="Eureka Server 的坑"></a>Eureka Server 的坑</h1><h2 id="Eureka-缓存"><a href="#Eureka-缓存" class="headerlink" title="Eureka 缓存"></a>Eureka 缓存</h2><p>Eureka的wiki上有一句话，大意是一个服务启动后最长可能需要2分钟时间才能被其它服务感知到，但是文档并没有解释为什么会有这2分钟。其实这是由三处缓存 + 一处延迟造成的。<br>首先，Eureka对HTTP响应做了缓存。在Eureka的”控制器”类<code>ApplicationResource</code>的109行可以看到有一行</p>
+<pre><code>String payLoad = responseCache.get(cacheKey);
+</code></pre><p>的调用，该代码所在的<code>getApplication()</code>方法的功能是响应客户端查询某个服务信息的HTTP请求：</p>
+<pre><code>String payLoad = responseCache.get(cacheKey); // 从cache中拿响应数据
+
+if (payLoad != null) {
+   logger.debug(&quot;Found: {}&quot;, appName);
+   return Response.ok(payLoad).build();
+} else {
+   logger.debug(&quot;Not Found: {}&quot;, appName);
+   return Response.status(Status.NOT_FOUND).build();
+}
+</code></pre><p>上面的代码中，responseCache引用的是ResponseCache类型，该类型是一个接口，其get()方法首先会去缓存中查询数据，如果没有则生成数据返回（即真正去查询注册列表），且缓存的有效时间为30s。也就是说，客户端拿到Eureka的响应并不一定是即时的，大部分时候只是缓存信息。</p>
+<p>其次，Eureka Client对已经获取到的注册信息也做了30s缓存。即服务通过eureka客户端第一次查询到可用服务地址后会将结果缓存，下次再调用时就不会真正向Eureka发起HTTP请求了。</p>
+<p><strong>再次， 负载均衡组件Ribbon也有30s缓存。</strong>Ribbon会从上面提到的Eureka Client获取服务列表，然后将结果缓存30s。</p>
+<p>最后，如果你并不是在Spring Cloud环境下使用这些组件(Eureka, Ribbon)，你的服务启动后并不会马上向Eureka注册，而是需要等到第一次发送心跳请求时才会注册。心跳请求的发送间隔也是30s。（Spring Cloud对此做了修改，服务启动后会马上注册）</p>
+<p>以上这四个30秒正是官方wiki上写服务注册最长需要2分钟的原因。</p>
+<h2 id="服务注册信息不会被二次传播"><a href="#服务注册信息不会被二次传播" class="headerlink" title="服务注册信息不会被二次传播"></a>服务注册信息不会被二次传播</h2><p>如果Eureka A的peer指向了B, B的peer指向了C，那么当服务向A注册时，B中会有该服务的注册信息，但是C中没有。也就是说，如果你希望只要向一台Eureka注册其它所有实例都能得到注册信息，那么就必须把其它所有节点都配置到当前Eureka的peer属性中。这一逻辑是在<code>PeerAwareInstanceRegistryImpl#replicateToPeers()</code>方法中实现的：</p>
+<pre><code>private void replicateToPeers(Action action, String appName, String id,
+                              InstanceInfo info /* optional */,
+                              InstanceStatus newStatus /* optional */, boolean isReplication) {
+    Stopwatch tracer = action.getTimer().start();
+    try {
+        if (isReplication) {
+            numberOfReplicationsLastMin.increment();
+        }
+        // 如果这条注册信息是其它Eureka同步过的则不会再继续传播给自己的peer节点
+        if (peerEurekaNodes == Collections.EMPTY_LIST || isReplication) {
+            return;
+        }
+
+        for (final PeerEurekaNode node : peerEurekaNodes.getPeerEurekaNodes()) {
+            // 不要向自己发同步请求
+            if (peerEurekaNodes.isThisMyUrl(node.getServiceUrl())) {
+                continue;
+            }
+            replicateInstanceActionsToPeers(action, appName, id, info, newStatus, node);
+        }
+    } finally {
+        tracer.stop();
+    }
+}
+</code></pre></div><div class="tags"><a href="/tags/redis/">redis</a><a href="/tags/memcache/">memcache</a><a href="/tags/tair/">tair</a></div><div class="post-nav"><a class="pre" href="/2018/04/11/shiro 过滤器源码解析/">shiro过滤器源码解析</a><a class="next" href="/2018/04/11/分布式缓存/">分布式缓存</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"/><input type="hidden" name="sitesearch" value="https://yuchanghui.github.io"/></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring-Boot/">Spring Boot</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring-Cloud/">Spring Cloud</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/design-datterns/">design datterns</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/java/">java</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/mysql/">mysql</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/shiro/">shiro</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/微服务/">微服务</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/zuul/" style="font-size: 15px;">zuul</a> <a href="/tags/JWT/" style="font-size: 15px;">JWT</a> <a href="/tags/memcache/" style="font-size: 15px;">memcache</a> <a href="/tags/tair/" style="font-size: 15px;">tair</a> <a href="/tags/concurrent/" style="font-size: 15px;">concurrent</a> <a href="/tags/Java8/" style="font-size: 15px;">Java8</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/javassist/" style="font-size: 15px;">javassist</a> <a href="/tags/feign/" style="font-size: 15px;">feign</a> <a href="/tags/ribbon/" style="font-size: 15px;">ribbon</a> <a href="/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/tags/druid/" style="font-size: 15px;">druid</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2018/12/25/druid获取连接假死/">Druid获取连接假死</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/12/24/druid连接池介绍/">Druid连接池介绍</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/12/12/2018全新互联网Java架构技术体系路线/">2018全新互联网Java架构技术体系路线</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/11/13/Spring常用核心源码/">Spring常用核心源码</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/11/11/Spring Cloud Zuul源码解析/">Spring Cloud Zuul源码解析</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/10/30/mysql分区/">mysql分区</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/13/Spring Boot异常处理详解/">Spring Boot异常处理详解</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/13/Spring MVC异常处理详解/">Spring MVC异常处理详解</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/11/spring Cloud组件超时整理/">Spring Cloud组件超时整理</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/11/Spring Cloud Zuul服务转发源码详解/">Spring Cloud Zuul服务转发源码详解</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://www.google.com/" title="谷歌" target="_blank">谷歌</a><ul></ul><a href="http://www.infoq.com/cn/" title="InfoQ" target="_blank">InfoQ</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2018 <a href="/." rel="nofollow">Charrington House.</a> Powered by Buyi.</div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//cdn.bootcss.com/fancybox/3.2.5/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/fancybox/3.2.5/jquery.fancybox.min.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script></div></body></html>
