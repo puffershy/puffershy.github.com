@@ -27,3 +27,6 @@ https://www.cnblogs.com/davidwang456/p/6734995.html|spring cloud集成 consul源
 https://www.springcloud.cc/spring-cloud-dalston.html|SpringCloud官方中文文档
 
 
+## 源码 ##
+1. org.springframework.cloud.consul.serviceregistry.ConsulServiceRegistryAutoConfiguration
+2. org.springframework.cloud.consul.serviceregistry.ConsulAutoServiceRegistrationAutoConfiguration

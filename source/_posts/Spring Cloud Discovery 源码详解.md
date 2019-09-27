@@ -7,7 +7,7 @@ tags:
 ---
 
 ## Spring Cloud 版本说明 ##
-Angle -> Brixton -> Camden -> Dalston -> Edgware -> Finchley
+Angle -> Brixton -> Camden -> Dalston -> Edgware -> Finchley -> Greenwich
 ## 注解EnableDiscoveryClient ##
 在早期版本中为了将服务发布到注册中心，需要在配置类中增加`@EnableDiscoveryClient`。代码如下
 ```
