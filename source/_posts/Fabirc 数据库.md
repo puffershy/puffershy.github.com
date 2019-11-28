@@ -73,7 +73,7 @@ peer0.org1.example.com:
 ，可以看到以Channel名字创建的Database，另外还有几个是系统数据库。
 
 ### 连接查询 ###
->  curl http://172.30.0.129:7984/mychannel_liukecc/_all_docs
+>  curl http://IP地址:7984/mychannel_puffer/_all_docs
 >  {"total_rows":2,"offset":0,"rows":[
 {"id":"a","key":"a","value":{"rev":"1-de8d5fec120cc887a129b25896e27fe8"}},
 {"id":"b","key":"b","value":{"rev":"1-903662ec9ffc2687a9a07bd0b2c37d99"}}
@@ -81,7 +81,7 @@ peer0.org1.example.com:
 
 
 
->   curl http://172.30.0.129:7984/mychannel_liukecc/a
+>   curl http://IP地址:7984/mychannel_puffer/a
 >   {"_id":"a","_rev":"1-de8d5fec120cc887a129b25896e27fe8","~version":"\u0000CgMBBQA=","_attachments":{"valueBytes":{"content_type":"application/octet-stream","revpos":1,"digest":"md5-XjotKUY1VBQxAUMQDoSRIA==","length":4,"stub":true}}}
 
 
