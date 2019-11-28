@@ -8,6 +8,26 @@ Fabric 1.0 alpha快速部署和CouchDB使用|包含fabric部署，故障排除�
 Hyperledger Fabric &CouchDB 查询|mongoDB查询|https://blog.csdn.net/cyberspecter/article/details/85014568
 Hyperledger Fabric常用命令|常用命令|https://blog.csdn.net/yanhuibin315/article/details/81560141
 使用CouchDB作为状态数据库|使用chaincode的CouchDB查询|https://www.cnblogs.com/aberic/p/8384999.html
+Hyperledger中文文档|中文使用手册|https://hyperledgercn.github.io/hyperledgerDocs/
+fabric 官方文档|英文使用手册|https://hyperledger-fabric.readthedocs.io/en/latest/build_network.html
+10分钟弄懂当前各主流区块链架构|-|https://blog.csdn.net/weixin_42758350/article/details/81153647
+Fabric 架构和概念|-|https://www.jianshu.com/p/722736b52c34
+IMB fabric 社区|IBM官网社区,包含视频|https://www.ibm.com/developerworks/community/wikis/home?lang=en#!/wiki/W30b0c771924e_49d2_b3b7_88a2a2bc2e43/page/%E8%AF%A6%E8%A7%A3Hyperledger%20Fabric%20v1.4%20LTS
+HyperLedger Fabric社区|官方社区|https://www.hyperledger.org/community
+HyperLedger Fabric 资料网址大全|知乎非常全的网址导航|https://zhuanlan.zhihu.com/p/26333761
+hyperledger github|github|https://github.com/hyperledger
+fabric-ca-server|ca mysql|https://stackoverflow.com/questions/57402608/fabric-ca-server-connect-to-azure-mysql-this-authentication-plugin-is-not-suppo
+在HyperLedger Fabric中启用CouchDB作为State Database|counchdb连接查询|https://www.cnblogs.com/studyzy/p/7101136.html
+
+fatric 1.0学习记录|作者学习fatric1.0的过程|https://www.cnblogs.com/aberic/category/1079974.html
+fabric 官网地图
+
+描述|网址
+---|---
+在线聊天|https://chat.hyperledger.org/channel/general
+wiki文档|https://wiki.hyperledger.org/
+
+
 ## 搭建Fatric ##
 
 yum install python-pip
@@ -72,3 +92,78 @@ docker-compose -f docker-compose-cli.yaml up -d
 docker-compose -f docker-compose-cli.yaml down
 # couchdb 启动命令
 docker-compose -f docker-compose-cli.yaml -f docker-compose-couch.yaml up
+
+
+# fabric1.4.0——用fabric-samples工程体验fabric部署安装的过程 #
+
+
+1. 下载fabric-samples
+> git clone  -b release-1.4 https://github.com/hyperledger/fabric-samples.git
+
+git clone -b branchA http://admin@192.168.1.101:7070/r/virtualbox_all_versions.git
+
+2. 进入basic-network目录，利用docker-compose启动容器
+>[root@master opt]# cd fabric-samples/basic-network/
+>[root@master basic-network]# docker-compose -f docker-compose.yml up -d
+
+3. 切换环境到管理员用户的MSP，进入peer节点容器peer0.org1.example.com
+>[root@master basic-network]# docker exec -it -e "CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp/users/Admin@org1.example.com/msp" peer0.org1.example.com bash
+
+4. 创建通道
+>`peer channel create -o orderer.example.com:7050 -c mychannel -f /etc/hyperledger/configtx/channel.tx`
+>root@8bce6cf7abcd:/opt/gopath/src/github.com/hyperledger/fabric# peer channel create -o orderer.example.com:7050 -c mychannel -f /etc/hyperledger/configtx/channel.tx
+>2019-11-19 03:42:23.463 UTC [channelCmd] InitCmdFactory -> INFO 001 Endorser and orderer connections initialized
+2019-11-19 03:42:23.496 UTC [cli.common] readBlock -> INFO 002 Received block: 0
+
+5. 加入通道
+>`peer channel join -b mychannel.block`
+>root@69d1ad88e343:/opt/gopath/src/github.com/hyperledger/fabric# peer channel join -b mychannel.block
+2019-11-19 03:47:08.236 UTC [channelCmd] InitCmdFactory -> INFO 001 Endorser and orderer connections initialized
+
+6. 退出peer节点容器peer0.org1.example.com
+> exit
+
+6. 进入cli容器安装链码和实例化
+>`docker exec -it cli /bin/bash`
+>[root@master basic-network]# docker exec -it cli /bin/bash
+
+7. 给peer节点peer0.org1.example.com安装链码
+>`peer chaincode install -n mycc -v v0 -p github.com/chaincode_example02/go`
+>root@27955f99dcc5:/opt/gopath/src/github.com/hyperledger/fabric/peer# peer chaincode install -n mycc -v v0 -p github.com/chaincode_example02/go
+2019-11-20 02:58:57.445 UTC [chaincodeCmd] checkChaincodeCmdParams -> INFO 001 Using default escc
+2019-11-20 02:58:57.445 UTC [chaincodeCmd] checkChaincodeCmdParams -> INFO 002 Using default vscc
+2019-11-20 02:58:57.731 UTC [chaincodeCmd] install -> INFO 003 Installed remotely response:<status:200 payload:"OK"  
+
+8. 实例化链
+>`peer chaincode instantiate -o orderer.example.com:7050 -C mychannel -n mycc -v v0 -c '{"Args":["init","a","100","b","200"]}'`
+
+9.  链码调用和查询
+链码实例化之后就可以查询初始值了，同样是在cli容器中进行
+>`peer chaincode query -C mychannel -n mycc -c '{"Args":["query","a"]}'`
+>root@27955f99dcc5:/opt/gopath/src/github.com/hyperledger/fabric/peer# peer chaincode query -C mychannel -n mycc -c '{"Args":["query","a"]}'
+100
+调用链码，从“a”转移10到“b”
+>`peer chaincode invoke -C mychannel -n mycc -c '{"Args":["invoke","a","b","10"]}'`
+>root@27955f99dcc5:/opt/gopath/src/github.com/hyperledger/fabric/peer# peer chaincode invoke -C mychannel -n mycc -c '{"Args":["invoke","a","b","10"]}'
+2019-11-20 03:19:02.438 UTC [chaincodeCmd] InitCmdFactory -> INFO 001 Retrieved channel (mychannel) orderer endpoint: orderer.example.com:7050
+2019-11-20 03:19:02.450 UTC [chaincodeCmd] chaincodeInvokeOrQuery -> INFO 002 Chaincode invoke successful. result: status:200 
+root@27955f99dcc5:/opt/gopath/src/github.com/hyperledger/fabric/peer# peer chaincode query -C mychannel -n mycc -c '{"Args":["query","a"]}'
+90
+root@27955f99dcc5:/opt/gopath/src/github.com/hyperledger/fabric/peer# peer chaincode query -C mychannel -n mycc -c '{"Args":["query","b"]}'
+210
+
+
+## 证书路径 ##
+>user1-key = 
+cd /home/yytmp/mj/hyperledger-fabric/fabric-samples/fabric-samples/first-network/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore
+user1-cert.pem =
+cd /home/yytmp/mj/hyperledger-fabric/fabric-samples/fabric-samples/first-network/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts
+user2-key =
+cd /home/yytmp/mj/hyperledger-fabric/fabric-samples/fabric-samples/first-network/crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/keystore
+user2-cert.pem =
+cd /home/yytmp/mj/hyperledger-fabric/fabric-samples/fabric-samples/first-network/crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/signcerts
+
+
+
+E:\workspace\workspace-jaws\jaws-blockchain\jaws-blockchain-server\target\classes\cert\user1-key
+E:\workspace\workspace-jaws\jaws-blockchain\jaws-blockchain-server\target\classes\cert\user1-cert.pem
