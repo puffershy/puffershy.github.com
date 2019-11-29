@@ -93,6 +93,7 @@ $in|包含|-
 $nin | 不包含 |-
 $regex|正则表达式|-
 
+
 ### 组合运算符说明 ###
 操作符|类型|用途
 ---|---|---
@@ -104,6 +105,14 @@ $all|数组|如果它包含参数数组的所有元素，则匹配数组值。
 $elemMatch|Selector|匹配并返回所有包含包含至少一个与所有指定查询条件匹配的元素的数组字段的文档。
 $allMatch|Selector|匹配并返回所有包含数组字段且其所有元素均与所有指定查询条件匹配的文档。
 
+### 统计信息说明###
+字段|说明
+---|---
+total_keys_examined|检查的索引键数。 当前始终为0。
+total_docs_examined|Number of documents fetched from the database / index, equivalent to using include_docs=true in a view. These may then be filtered in-memory to further narrow down the result set based on the selector.
+total_quorum_docs_examined|Number of documents fetched from the database using an out-of-band document fetch. This is only non-zero when read quorum > 1 is specified in the query parameters.
+results_returned|Number of results returned from the query. Ideally this should not be significantly lower than the total documents / keys examined.
+execution_time_ms|Total execution time in milliseconds as measured by the database.
 
 ### 1. 简单查询 ###
 
@@ -178,5 +187,42 @@ couchDB模糊查询，需要使用正则表达来查询
 }
 ```
 
+- 逻辑“或”查询
 
+```
+-- 查询1977年出品，导演是“George Lucas”，或者是“Steven Spielberg"
+{
+   "selector": {
+       "year": 1977,
+       "$or": [
+         { "director": "George Lucas" },
+         { "director": "Steven Spielberg" }
+    ]
+   }
+}
+```
 
+- 排序
+```
+-- 查询主演为“Robert De Niro”，并按照演员名升序，电影上映时间升序排列
+{
+    "selector": {"Actor_name": "Robert De Niro"},
+    "sort": [{"Actor_name": "asc"}, {"Movie_runtime": "asc"}]
+}
+```
+
+- 查询返回指定字段
+```
+-- 查询演员是：“Robert De Niro”的记录，并只返回演员名称，电影年份，主键
+{
+    "selector": { "Actor_name": "Robert De Niro" },
+    "fields": ["Actor_name", "Movie_year", "_id", "_rev"]
+}
+```
+
+-- 分页查询
+```
+-- 使用bookmark分页查询
+```
+
+### 2. 索引 ###
