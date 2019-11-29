@@ -18,8 +18,9 @@ HyperLedger Fabric 资料网址大全|知乎非常全的网址导航|https://zhu
 hyperledger github|github|https://github.com/hyperledger
 fabric-ca-server|ca mysql|https://stackoverflow.com/questions/57402608/fabric-ca-server-connect-to-azure-mysql-this-authentication-plugin-is-not-suppo
 在HyperLedger Fabric中启用CouchDB作为State Database|counchdb连接查询|https://www.cnblogs.com/studyzy/p/7101136.html
-
 fatric 1.0学习记录|作者学习fatric1.0的过程|https://www.cnblogs.com/aberic/category/1079974.html
+Fabric Java SDK最新教程|精选教程|https://my.oschina.net/u/2472105/blog/3042504
+
 fabric 官网地图
 
 描述|网址
@@ -167,3 +168,27 @@ cd /home/yytmp/mj/hyperledger-fabric/fabric-samples/fabric-samples/first-network
 
 E:\workspace\workspace-jaws\jaws-blockchain\jaws-blockchain-server\target\classes\cert\user1-key
 E:\workspace\workspace-jaws\jaws-blockchain\jaws-blockchain-server\target\classes\cert\user1-cert.pem
+
+
+
+# 链码 peer 命令 #
+
+INSERT
+peer chaincode invoke -C mychannel -n borrower_info_cc2 -c '{"Args":["{\"invokeType\":\"INSERT\",\"key\":\"zsf03\",\"value\":\"{\\\"companyAddress\\\":\\\"1shenzhen nanshan\\\",\\\"educationExperience\\\":\\\"UNDERGRADUATE_COURSE\\\",\\\"employeeType\\\":\\\"SALARIED_PERSON1\\\",\\\"familyAddress\\\":\\\"1shenzhen nanshan xunmei\\\",\\\"gender\\\":\\\"FMALE\\\",\\\"headShip\\\":\\\"yaungong1\\\",\\\"maritalStatus\\\":\\\"MARRIED1\\\",\\\"registeredCapital\\\":\\\"200001\\\",\\\"userName\\\":\\\"yY1\\\",\\\"workCity\\\":\\\"shenzhen1\\\",\\\"workTime\\\":\\\"3years12\\\"}\"}"]}'
+RICH_QUERY
+peer chaincode invoke -C mychannel -n borrower_info_cc2 -c '{"Args":["{\"invokeType\":\"RICH_QUERY\",\"key\":\"{\\\"selector\\\":{\\\"companyAddress\\\":{\\\"$regex\\\":\\\"shenzhen*\\\"}}}\"}"]}'
+HISTORY
+peer chaincode invoke -C mychannel -n borrower_info_cc2 -c '{"Args":["{\"invokeType\":\"HISTORY\",\"key\":\"zsf03\"}"]}' 
+UPDATE
+peer chaincode invoke -C mychannel -n borrower_info_cc2 -c '{"Args":["{\"invokeType\":\"UPDATE\",\"key\":\"zsf03\",\"value\":\"{\\\"companyAddress\\\":\\\"123shenzhen nanshan\\\",\\\"educationExperience\\\":\\\"UNDERGRADUATE_COURSE\\\",\\\"employeeType\\\":\\\"SALARIED_PERSON1\\\",\\\"familyAddress\\\":\\\"1shenzhen nanshan xunmei\\\",\\\"gender\\\":\\\"FMALE\\\",\\\"headShip\\\":\\\"yaungong1\\\",\\\"maritalStatus\\\":\\\"MARRIED1\\\",\\\"registeredCapital\\\":\\\"200001\\\",\\\"userName\\\":\\\"yY1\\\",\\\"workCity\\\":\\\"shenzhen1\\\",\\\"workTime\\\":\\\"3years1\\\"}\"}"]}'
+QUERY
+peer chaincode query -C mychannel -n borrower_info_cc2 -c '{"Args":["{\"invokeType\":\"DEL\",\"key\":\"zsf03\"}"]}'
+DEL
+peer chaincode invoke -C mychannel -n borrower_info_cc2 -c '{"Args":["{\"invokeType\":\"DEL\",\"key\":\"zsf03\"}"]}'
+
+# 链码 #
+ https://www.cnblogs.com/studyzy/p/7360733.html
+链码开发编译测试|https://www.cnblogs.com/informatics/p/8051981.html
+
+# TLS #
+https://developer.ibm.com/tutorials/hyperledger-fabric-java-sdk-for-tls-enabled-fabric-network/

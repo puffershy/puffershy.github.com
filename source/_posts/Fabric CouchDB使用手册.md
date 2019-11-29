@@ -1,4 +1,4 @@
-# Fabric CounchDB查询使用说明 #
+# Fabric CouchDB查询使用说明 #
 
 推荐阅读：
 
@@ -7,6 +7,7 @@
 CounchDB|http://docs.couchdb.org/en/stable/api/database/find.html?highlight=find
 couchdb 丰富查询 selector 语法|https://blog.csdn.net/weixin_34037173/article/details/91809461
 CouchDb SDK使用|https://www.cnblogs.com/studyzy/p/7360733.html
+Fabric CouchDB官方文档|https://hyperledger-fabric.readthedocs.io/en/release-1.4/couchdb_tutorial.html
 
 ## CouchDB管理平台 ##
 地址：http://172.30.0.129:5984/_utils
@@ -226,3 +227,15 @@ couchDB模糊查询，需要使用正则表达来查询
 ```
 
 ### 2. 索引 ###
+
+避免对将导致扫描整个 CouchDB 数据库的查询使用链代码。全面的数据库扫描将导致很长的响应时间，并且会降低网络的性能。您可以执行以下某些步骤来避免和管理大型查询：
+- 使用链代码设置索引。
+- 索引中的所有字段还必须位于查询的选择器或排序部分，才能使用索引。
+- 查询越复杂，查询性能越低，使用索引的可能性越小。
+- 应该设法避免将导致全表扫描或全索引扫描的运算符，例如 $or、$in 和 $regex。
+
+在[Fabric CounDB教程](https://hyperledger-fabric.readthedocs.io/en/release-1.4/couchdb_tutorial.html#use-best-practices-for-queries-and-indexes "Fabric CounDB教程")中可以找到演示查询如何使用索引以及哪种类型的查询具有最佳性能的示例。
+
+不要为了汇总或报告目的而查询整个数据库。如果要构建仪表板或收集大量数据以作为应用程序的一部分，那么可以查询从区块链网络复制数据的链外数据库。这将允许您了解区块链上的数据，而不会降低网络性能或中断事务。
+
+可以使用 Fabric SDK 提供的基于通道的事件服务客户机来构建链外数据存储。例如，您可以使用块侦听器获取添加到通道分类帐的最新事务。然后，可以使用来自有效事务处理的事务读集和写集来更新已存储在单独数据库中的全局状态的副本。有关更多信息，请参阅 Node SDK 文档中的[How to use the channel-based event service](https://fabric-sdk-node.github.io/tutorial-channel-events.html " How to use the channel-based event service")
