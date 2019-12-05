@@ -80,3 +80,4 @@ SignaturePolicyEnvelope.policy|指向identities定义的节点，即私有数据
 ![](https://hyperledger-fabric.readthedocs.io/en/release-1.4/_images/SideDB-org2.png)
 ![](https://hyperledger-fabric.readthedocs.io/en/release-1.4/_images/SideDB-org2.png)
 
+sdk-java在链码初始化的时候加载集合配置，api:`org.hyperledger.fabric.sdk.TransactionRequest#setChaincodeCollectionConfiguration`
