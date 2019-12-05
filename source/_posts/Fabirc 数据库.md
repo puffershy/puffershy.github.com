@@ -20,6 +20,7 @@ fabric-ca-server|ca mysql|https://stackoverflow.com/questions/57402608/fabric-ca
 在HyperLedger Fabric中启用CouchDB作为State Database|counchdb连接查询|https://www.cnblogs.com/studyzy/p/7101136.html
 fatric 1.0学习记录|作者学习fatric1.0的过程|https://www.cnblogs.com/aberic/category/1079974.html
 Fabric Java SDK最新教程|精选教程|https://my.oschina.net/u/2472105/blog/3042504
+链码API文档|ChaincodeStub|http://cw.hubwiz.com/card/c/fabric-chaincode-node/1/2/29/
 
 fabric 官网地图
 
