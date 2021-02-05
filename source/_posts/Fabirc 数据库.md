@@ -174,6 +174,8 @@ E:\workspace\workspace-jaws\jaws-blockchain\jaws-blockchain-server\target\classe
 
 # 链码 peer 命令 #
 
+参数说明： https://blog.csdn.net/qq_37133717/article/details/80932884
+
 INSERT
 peer chaincode invoke -C mychannel -n borrower_info_cc2 -c '{"Args":["{\"invokeType\":\"INSERT\",\"key\":\"zsf03\",\"value\":\"{\\\"companyAddress\\\":\\\"1shenzhen nanshan\\\",\\\"educationExperience\\\":\\\"UNDERGRADUATE_COURSE\\\",\\\"employeeType\\\":\\\"SALARIED_PERSON1\\\",\\\"familyAddress\\\":\\\"1shenzhen nanshan xunmei\\\",\\\"gender\\\":\\\"FMALE\\\",\\\"headShip\\\":\\\"yaungong1\\\",\\\"maritalStatus\\\":\\\"MARRIED1\\\",\\\"registeredCapital\\\":\\\"200001\\\",\\\"userName\\\":\\\"yY1\\\",\\\"workCity\\\":\\\"shenzhen1\\\",\\\"workTime\\\":\\\"3years12\\\"}\"}"]}'
 RICH_QUERY
@@ -193,3 +195,10 @@ peer chaincode invoke -C mychannel -n borrower_info_cc2 -c '{"Args":["{\"invokeT
 
 # TLS #
 https://developer.ibm.com/tutorials/hyperledger-fabric-java-sdk-for-tls-enabled-fabric-network/
+
+
+# 背书策略 #
+https://www.jianshu.com/p/33a23471bdcc
+https://blog.csdn.net/yeasy/article/details/88536882
+
+默认情况下，会以当前 MSP 的管理员身份作为默认的策略，即只有当前 MSP 管理员可以进行链码实例化操作。这可以避免链码被通道中其他组织成员私自在其它通道内进行实例化。
